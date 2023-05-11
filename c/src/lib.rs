@@ -75,6 +75,7 @@ pub struct ParseOptions {
   filename: *const c_char,
   nesting: bool,
   custom_media: bool,
+  scope: bool,
   css_modules: bool,
   css_modules_pattern: *const c_char,
   css_modules_dashed_idents: bool,
@@ -263,6 +264,7 @@ pub extern "C" fn lightningcss_stylesheet_parse(
     },
     nesting: options.nesting,
     custom_media: options.custom_media,
+    scope: options.scope,
     css_modules: if options.css_modules {
       let pattern = if !options.css_modules_pattern.is_null() {
         let pattern =

@@ -577,6 +577,8 @@ struct Drafts {
   nesting: bool,
   #[serde(default)]
   custom_media: bool,
+  #[serde(default)]
+  scope: bool,
 }
 
 fn compile<'i>(
@@ -605,6 +607,7 @@ fn compile<'i>(
         filename: filename.clone(),
         nesting: matches!(drafts, Some(d) if d.nesting),
         custom_media: matches!(drafts, Some(d) if d.custom_media),
+        scope: matches!(drafts, Some(d) if d.scope),
         css_modules: if let Some(css_modules) = &config.css_modules {
           match css_modules {
             CssModulesOption::Bool(true) => Some(lightningcss::css_modules::Config::default()),
@@ -714,6 +717,7 @@ fn compile_bundle<
     let parser_options = ParserOptions {
       nesting: matches!(drafts, Some(d) if d.nesting),
       custom_media: matches!(drafts, Some(d) if d.custom_media),
+      scope: matches!(drafts, Some(d) if d.custom_media),
       css_modules: if let Some(css_modules) = &config.css_modules {
         match css_modules {
           CssModulesOption::Bool(true) => Some(lightningcss::css_modules::Config::default()),

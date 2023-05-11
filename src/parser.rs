@@ -7,7 +7,9 @@ use crate::rules::container::{ContainerCondition, ContainerName, ContainerRule};
 use crate::rules::font_palette_values::FontPaletteValuesRule;
 use crate::rules::layer::{LayerBlockRule, LayerStatementRule};
 use crate::rules::property::PropertyRule;
+use crate::rules::scope::ScopeRule;
 use crate::rules::viewport::ViewportRule;
+
 use crate::rules::{
   counter_style::CounterStyleRule,
   custom_media::CustomMediaRule,
@@ -45,6 +47,8 @@ pub struct ParserOptions<'o, 'i> {
   pub nesting: bool,
   /// Whether to enable the [custom media](https://drafts.csswg.org/mediaqueries-5/#custom-mq) draft syntax.
   pub custom_media: bool,
+  /// Whether to enable the [@scope](https://drafts.csswg.org/css-cascade-6/#scope-atrule) draft syntax.
+  pub scope: bool,
   /// Whether the enable [CSS modules](https://github.com/css-modules/css-modules).
   pub css_modules: Option<crate::css_modules::Config<'o>>,
   /// The source index to assign to all parsed rules. Impacts the source map when
@@ -137,6 +141,10 @@ impl<'a, 'o, 'b, 'i, T> TopLevelRuleParser<'a, 'o, 'i, T> {
 pub enum AtRulePrelude<'i, T> {
   /// A @font-face rule prelude.
   FontFace,
+
+  /// A @scope rule prelude.
+  Scope,
+
   /// A @font-feature-values rule prelude, with its FamilyName list.
   FontFeatureValues, //(Vec<FamilyName>),
   /// A @font-palette-values rule prelude, with its name.
@@ -423,6 +431,9 @@ impl<'a, 'o, 'b, 'i, T: crate::traits::AtRuleParser<'i>> AtRuleParser<'i> for Ne
       "font-face" => {
         Ok(AtRulePrelude::FontFace)
       },
+      "scope" if self.options.scope => {
+        Ok(AtRulePrelude::Scope)
+      },
       // "font-feature-values" => {
       //     if !cfg!(feature = "gecko") {
       //         // Support for this rule is not fully implemented in Servo yet.
@@ -560,6 +571,10 @@ impl<'a, 'o, 'b, 'i, T: crate::traits::AtRuleParser<'i>> AtRuleParser<'i> for Ne
       AtRulePrelude::Container(name, condition) => Ok(CssRule::Container(ContainerRule {
         name,
         condition,
+        rules: self.parse_nested_rules(input)?,
+        loc,
+      })),
+      AtRulePrelude::Scope => Ok(CssRule::Scope(ScopeRule {
         rules: self.parse_nested_rules(input)?,
         loc,
       })),

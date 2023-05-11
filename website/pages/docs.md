@@ -51,7 +51,8 @@ You can also configure Lightning CSS in the `package.json` in the root of your p
     "cssModules": true,
     "drafts": {
       "nesting": true,
-      "customMedia": true
+      "customMedia": true,
+      "scope": true,
     },
     "pseudoClasses": {
       "focusVisible": "focus-ring"

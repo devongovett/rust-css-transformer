@@ -23,6 +23,7 @@ typedef struct ParseOptions {
   const char *filename;
   bool nesting;
   bool custom_media;
+  bool scope;
   bool css_modules;
   const char *css_modules_pattern;
   bool css_modules_dashed_idents;

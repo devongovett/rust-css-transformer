@@ -50,6 +50,7 @@ pub mod namespace;
 pub mod nesting;
 pub mod page;
 pub mod property;
+pub mod scope;
 pub mod style;
 pub mod supports;
 pub mod unknown;
@@ -88,6 +89,7 @@ use media::MediaRule;
 use namespace::NamespaceRule;
 use nesting::NestingRule;
 use page::PageRule;
+use scope::ScopeRule;
 use std::collections::{HashMap, HashSet};
 use std::hash::{BuildHasherDefault, Hasher};
 use style::StyleRule;
@@ -164,6 +166,8 @@ pub enum CssRule<'i, R = DefaultAtRule> {
   Property(PropertyRule<'i>),
   /// A `@container` rule.
   Container(ContainerRule<'i, R>),
+  /// A `@scope` rule.
+  Scope(ScopeRule<'i, R>),
   /// A placeholder for a rule that was removed.
   Ignored,
   /// An unknown at-rule.
@@ -300,6 +304,10 @@ impl<'i, 'de: 'i, R: serde::Deserialize<'de>> serde::Deserialize<'de> for CssRul
         let rule = ContainerRule::deserialize(deserializer)?;
         Ok(CssRule::Container(rule))
       }
+      "scope" => {
+        let rule = ScopeRule::deserialize(deserializer)?;
+        Ok(CssRule::Scope(rule))
+      }
       "ignored" => Ok(CssRule::Ignored),
       "unknown" => {
         let rule = UnknownAtRule::deserialize(deserializer)?;
@@ -338,6 +346,7 @@ impl<'a, 'i, T: ToCss> ToCss for CssRule<'i, T> {
       CssRule::LayerBlock(layer) => layer.to_css(dest),
       CssRule::Property(property) => property.to_css(dest),
       CssRule::Container(container) => container.to_css(dest),
+      CssRule::Scope(scope) => scope.to_css(dest),
       CssRule::Unknown(unknown) => unknown.to_css(dest),
       CssRule::Custom(rule) => rule.to_css(dest).map_err(|_| PrinterError {
         kind: PrinterErrorKind::FmtError,
@@ -668,6 +677,7 @@ impl<'i, T> CssRuleList<'i, T> {
             continue;
           }
         }
+        CssRule::Scope(scope) => scope.minify(context)?,
         CssRule::Nesting(nesting) => {
           if nesting.minify(context, parent_is_unused)? {
             continue;

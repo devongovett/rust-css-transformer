@@ -283,6 +283,7 @@ impl<'i> Visitor<'i, AtRule<'i>> for JsVisitor {
             CssRule::LayerStatement(..) => "layer-statement",
             CssRule::Property(..) => "property",
             CssRule::Container(..) => "container",
+            CssRule::Scope(..) => "scope",
             CssRule::MozDocument(..) => "moz-document",
             CssRule::Nesting(..) => "nesting",
             CssRule::Viewport(..) => "viewport",

@@ -208,6 +208,33 @@ mod tests {
     assert_eq!(res.code, expected);
   }
 
+  fn at_scope_minify_test(source: &str, expected: &str) {
+    let mut stylesheet = StyleSheet::parse(
+      &source,
+      ParserOptions {
+        scope: true,
+        ..ParserOptions::default()
+      },
+    )
+    .unwrap();
+    stylesheet
+      .minify(MinifyOptions {
+        targets: Some(Browsers {
+          chrome: Some(95 << 16),
+          ..Browsers::default()
+        }),
+        ..MinifyOptions::default()
+      })
+      .unwrap();
+    let res = stylesheet
+      .to_css(PrinterOptions {
+        minify: true,
+        ..PrinterOptions::default()
+      })
+      .unwrap();
+    assert_eq!(res.code, expected);
+  }
+
   fn error_test(source: &str, error: ParserError) {
     let res = StyleSheet::parse(&source, ParserOptions::default());
     match res {
@@ -22691,6 +22718,30 @@ mod tests {
       width: device-width;
     }"#,
       "@-ms-viewport{width:device-width}",
+    );
+  }
+
+  #[test]
+  fn test_at_scope() {
+    at_scope_minify_test(
+      r#"
+      @scope {
+        .foo {
+          display: flex;
+        }
+      }
+      "#,
+      "@scope{.foo{display:flex}}",
+    );
+    at_scope_minify_test(
+      r#"
+      @scope {
+        :scope {
+          display: flex;
+          color: lightblue;
+        }
+      }"#,
+      "@scope{:scope{color:#add8e6;display:flex}}",
     );
   }
 

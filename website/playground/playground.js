@@ -108,6 +108,10 @@ function reflectPlaygroundState(playgroundState) {
     customMedia.checked = playgroundState.customMedia;
   }
 
+  if (typeof playgroundState.scope !== 'undefined') {
+    scope.checked = playgroundState.scope;
+  }
+
   if (typeof playgroundState.visitorEnabled !== 'undefined') {
     visitorEnabled.checked = playgroundState.visitorEnabled;
   }
@@ -134,6 +138,7 @@ function savePlaygroundState() {
     minify: minify.checked,
     nesting: nesting.checked,
     customMedia: customMedia.checked,
+    scope: scope.checked,
     cssModules: cssModules.checked,
     analyzeDependencies: analyzeDependencies.checked,
     targets: getTargets(),
@@ -182,7 +187,8 @@ function update() {
       targets: Object.keys(targets).length === 0 ? null : targets,
       drafts: {
         nesting: nesting.checked,
-        customMedia: customMedia.checked
+        customMedia: customMedia.checked,
+        scope: scope.checked,
       },
       cssModules: cssModules.checked,
       analyzeDependencies: analyzeDependencies.checked,
