@@ -73,11 +73,13 @@ impl std::convert::Into<Calc<Percentage>> for Percentage {
   }
 }
 
-impl std::convert::From<Calc<Percentage>> for Percentage {
-  fn from(calc: Calc<Percentage>) -> Percentage {
+impl std::convert::TryFrom<Calc<Percentage>> for Percentage {
+  type Error = ();
+
+  fn try_from(calc: Calc<Percentage>) -> Result<Percentage, Self::Error> {
     match calc {
-      Calc::Value(v) => *v,
-      _ => unreachable!(),
+      Calc::Value(v) => Ok(*v),
+      _ => Err(()),
     }
   }
 }
@@ -226,6 +228,7 @@ impl<
       + Zero
       + TrySign
       + TryFrom<Angle>
+      + TryInto<Angle>
       + PartialOrd<D>
       + std::fmt::Debug,
   > Parse<'i> for DimensionPercentage<D>
@@ -372,7 +375,7 @@ impl<D: TryAdd<D> + Clone + Zero + TrySign + std::fmt::Debug> DimensionPercentag
 
     match (a, b) {
       (DimensionPercentage::Calc(a), DimensionPercentage::Calc(b)) => {
-        DimensionPercentage::Calc(Box::new(a.add(*b)))
+        DimensionPercentage::Calc(Box::new(a.add(*b).unwrap()))
       }
       (DimensionPercentage::Calc(calc), b) => {
         if let Calc::Value(a) = *calc {
@@ -454,6 +457,17 @@ impl<E, D: TryFrom<Angle, Error = E>> TryFrom<Angle> for DimensionPercentage<D> 
 
   fn try_from(value: Angle) -> Result<Self, Self::Error> {
     Ok(DimensionPercentage::Dimension(D::try_from(value)?))
+  }
+}
+
+impl<E, D: TryInto<Angle, Error = E>> TryInto<Angle> for DimensionPercentage<D> {
+  type Error = ();
+
+  fn try_into(self) -> Result<Angle, Self::Error> {
+    match self {
+      DimensionPercentage::Dimension(d) => d.try_into().map_err(|_| ()),
+      _ => Err(()),
+    }
   }
 }
 

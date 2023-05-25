@@ -129,11 +129,13 @@ impl std::convert::Into<Calc<Time>> for Time {
   }
 }
 
-impl std::convert::From<Calc<Time>> for Time {
-  fn from(calc: Calc<Time>) -> Time {
+impl std::convert::TryFrom<Calc<Time>> for Time {
+  type Error = ();
+
+  fn try_from(calc: Calc<Time>) -> Result<Time, Self::Error> {
     match calc {
-      Calc::Value(v) => *v,
-      _ => unreachable!(),
+      Calc::Value(v) => Ok(*v),
+      _ => Err(()),
     }
   }
 }

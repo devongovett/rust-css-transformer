@@ -1554,21 +1554,16 @@ impl<'i> UnresolvedColor<'i> {
   where
     W: std::fmt::Write,
   {
-    #[inline]
-    fn c(c: &f32) -> i32 {
-      (c * 255.0).round().clamp(0.0, 255.0) as i32
-    }
-
     match self {
       UnresolvedColor::RGB { r, g, b, alpha } => {
         if let Some(targets) = dest.targets {
           if !compat::Feature::SpaceSeparatedColorFunction.is_compatible(targets) {
             dest.write_str("rgba(")?;
-            c(r).to_css(dest)?;
+            r.to_css(dest)?;
             dest.delim(',', false)?;
-            c(g).to_css(dest)?;
+            g.to_css(dest)?;
             dest.delim(',', false)?;
-            c(b).to_css(dest)?;
+            b.to_css(dest)?;
             dest.delim(',', false)?;
             alpha.to_css(dest, is_custom_property)?;
             dest.write_char(')')?;
@@ -1577,11 +1572,11 @@ impl<'i> UnresolvedColor<'i> {
         }
 
         dest.write_str("rgb(")?;
-        c(r).to_css(dest)?;
+        r.to_css(dest)?;
         dest.write_char(' ')?;
-        c(g).to_css(dest)?;
+        g.to_css(dest)?;
         dest.write_char(' ')?;
-        c(b).to_css(dest)?;
+        b.to_css(dest)?;
         dest.delim('/', true)?;
         alpha.to_css(dest, is_custom_property)?;
         dest.write_char(')')

@@ -182,11 +182,13 @@ impl Into<Calc<Angle>> for Angle {
   }
 }
 
-impl From<Calc<Angle>> for Angle {
-  fn from(calc: Calc<Angle>) -> Angle {
+impl TryFrom<Calc<Angle>> for Angle {
+  type Error = ();
+
+  fn try_from(calc: Calc<Angle>) -> Result<Angle, ()> {
     match calc {
-      Calc::Value(v) => *v,
-      _ => unreachable!(),
+      Calc::Value(v) => Ok(*v),
+      _ => Err(()),
     }
   }
 }
@@ -281,6 +283,13 @@ macro_rules! impl_try_from_angle {
     impl TryFrom<crate::values::angle::Angle> for $t {
       type Error = ();
       fn try_from(_: crate::values::angle::Angle) -> Result<Self, Self::Error> {
+        Err(())
+      }
+    }
+
+    impl TryInto<crate::values::angle::Angle> for $t {
+      type Error = ();
+      fn try_into(self) -> Result<crate::values::angle::Angle, Self::Error> {
         Err(())
       }
     }
