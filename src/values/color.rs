@@ -1038,6 +1038,9 @@ fn parse_color_function<'i, 't>(
     "rgb" | "rgba" => {
        parse_rgb(input, &mut parser)
     },
+    "contrast-color" => {
+      input.parse_nested_block(parse_contrast_color)
+    },
     "color-mix" => {
       input.parse_nested_block(parse_color_mix)
     },
@@ -1629,6 +1632,21 @@ impl RGBA {
   #[inline]
   pub fn alpha_f32(&self) -> f32 {
     self.alpha as f32 / 255.0
+  }
+
+  /// Returns the [relative luminance](https://www.w3.org/TR/WCAG21/#dfn-relative-luminance) of the color.
+  fn relative_luminance(&self) -> f32 {
+    fn channel_luminance(channel: f32) -> f32 {
+      if channel <= 0.04045 {
+        channel / 12.92
+      } else {
+        ((channel + 0.055) / 1.055).powf(2.4)
+      }
+    }
+
+    0.2126 * channel_luminance(self.red_f32())
+      + 0.7152 * channel_luminance(self.green_f32())
+      + 0.0722 * channel_luminance(self.blue_f32())
   }
 }
 
@@ -3134,6 +3152,105 @@ where
   current.into()
 }
 
+fn calculate_contrast_color(base_luminance: f32, mut candidates: Vec<CssColor>) -> CssColor {
+  if candidates.is_empty() {
+    candidates.push(CssColor::RGBA(RGBA::new(0, 0, 0, 1.0)));
+    candidates.push(CssColor::RGBA(RGBA::new(255, 255, 255, 1.0)));
+  }
+
+  fn wcag2_contrast_ratio(l1: f32, l2: f32) -> f32 {
+    // https://www.w3.org/TR/WCAG21/#dfn-contrast-ratio
+    let l1 = l1 + 0.05;
+    let l2 = l2 + 0.05;
+
+    if l1 > l2 {
+      l1 / l2
+    } else {
+      l2 / l1
+    }
+  }
+
+  let mut best_contrast = 0.0;
+  let mut best_contrast_index = 0;
+
+  for (i, candidate) in candidates.iter().enumerate() {
+    let candidate_luminance = candidate.relative_luminance().unwrap();
+    let contrast = wcag2_contrast_ratio(base_luminance, candidate_luminance);
+
+    if contrast > best_contrast {
+      best_contrast = contrast;
+      best_contrast_index = i;
+    }
+  }
+
+  candidates[best_contrast_index].clone()
+}
+
+fn parse_contrast_color<'i, 't>(input: &mut Parser<'i, 't>) -> Result<CssColor, ParseError<'i, ParserError<'i>>> {
+  let base_color = CssColor::parse(input)?;
+
+  let base_luminance = match base_color.relative_luminance() {
+    Some(value) => value,
+    None => {
+      return Err(input.new_custom_error(ParserError::InvalidValue));
+    }
+  };
+
+  let location = input.current_source_location();
+
+  match input.expect_ident() {
+    Ok(value) => {
+      match_ignore_ascii_case! { value,
+        // https://drafts.csswg.org/css-color-5/#contrast-color
+        "max" => {
+          return Ok(calculate_contrast_color(base_luminance, Vec::new()));
+        },
+
+        // https://github.com/w3c/csswg-drafts/issues/7937
+        #[cfg(feature = "level6")]
+        "tbd-bg" | "tbd-fg" => {
+          input.expect_ident_matching("wcag2")?;
+          input.expect_comma()?;
+
+          let mut candidates = Vec::new();
+
+          loop {
+            let color = CssColor::parse(input)?;
+
+            if color.relative_luminance().is_none() {
+              break Err(input.new_custom_error(ParserError::InvalidValue));
+            }
+
+            candidates.push(color);
+
+            match input.expect_comma() {
+              Ok(()) => {}
+
+              Err(BasicParseError {
+                kind: BasicParseErrorKind::EndOfInput,
+                ..
+              }) => break Ok(calculate_contrast_color(base_luminance, candidates)),
+
+              Err(e) => break Err(e.into()),
+            }
+          }
+        },
+
+        _ => {
+          Err(location.new_unexpected_token_error(Token::Ident(value.to_owned())))
+        }
+      }
+    }
+
+    Err(BasicParseError {
+      kind: BasicParseErrorKind::EndOfInput,
+      ..
+    }) => Ok(calculate_contrast_color(base_luminance, Vec::new())),
+
+    Err(e) => Err(e.into()),
+  }
+}
+
 fn parse_color_mix<'i, 't>(input: &mut Parser<'i, 't>) -> Result<CssColor, ParseError<'i, ParserError<'i>>> {
   input.expect_ident_matching("in")?;
   let method = ColorSpaceName::parse(input)?;
@@ -3230,6 +3347,19 @@ impl CssColor {
     match self {
       CssColor::LightDark(..) => self.clone(),
       _ => CssColor::LightDark(Box::new(self.clone()), Box::new(self.clone())),
+    }
+  }
+
+  /// Returns the [relative luminance](https://www.w3.org/TR/WCAG21/#dfn-relative-luminance) of the color, if it can be calculated.
+  fn relative_luminance(&self) -> Option<f32> {
+    match self {
+      CssColor::CurrentColor => None,
+      CssColor::RGBA(rgba) => Some(rgba.relative_luminance()),
+      CssColor::LAB(lab) => Some(RGBA::from(**lab).relative_luminance()),
+      CssColor::Predefined(pre) => Some(RGBA::from(**pre).relative_luminance()),
+      CssColor::Float(float) => Some(RGBA::from(**float).relative_luminance()),
+      CssColor::LightDark(..) => None,
+      CssColor::System(_) => None,
     }
   }
 

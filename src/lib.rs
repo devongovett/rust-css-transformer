@@ -17841,6 +17841,126 @@ mod tests {
   }
 
   #[test]
+  fn contrast_color_level5() {
+    fn test(input: &str, output: &str) {
+      let output = CssColor::parse_string(output)
+        .unwrap()
+        .to_css_string(PrinterOptions {
+          minify: true,
+          ..PrinterOptions::default()
+        })
+        .unwrap();
+      minify_test(
+        &format!(".foo {{ color: {} }}", input),
+        &format!(".foo{{color:{}}}", output),
+      );
+    }
+
+    test("contrast-color(#000)", "#fff");
+    test("contrast-color(#333)", "#fff");
+    test("contrast-color(#ccc)", "#000");
+    test("contrast-color(#fff)", "#000");
+
+    test("contrast-color(#000 max)", "#fff");
+    test("contrast-color(#333 max)", "#fff");
+    test("contrast-color(#ccc max)", "#000");
+    test("contrast-color(#fff max)", "#000");
+
+    test("contrast-color(#00364a)", "#fff");
+    test("contrast-color(#00c7fc)", "#000");
+    test("contrast-color(#263e0f)", "#fff");
+    test("contrast-color(#371a94)", "#fff");
+    test("contrast-color(#9aa60e)", "#000");
+    test("contrast-color(#c3d117)", "#000");
+    test("contrast-color(#ffb43f)", "#000");
+    test("contrast-color(#ffe4a8)", "#000");
+
+    test("contrast-color(#00364a max)", "#fff");
+    test("contrast-color(#00c7fc max)", "#000");
+    test("contrast-color(#263e0f max)", "#fff");
+    test("contrast-color(#371a94 max)", "#fff");
+    test("contrast-color(#9aa60e max)", "#000");
+    test("contrast-color(#c3d117 max)", "#000");
+    test("contrast-color(#ffb43f max)", "#000");
+    test("contrast-color(#ffe4a8 max)", "#000");
+  }
+
+  #[test]
+  #[cfg(feature = "level6")]
+  fn contrast_color_level6() {
+    fn test(input: &str, output: &str) {
+      let output = CssColor::parse_string(output)
+        .unwrap()
+        .to_css_string(PrinterOptions {
+          minify: true,
+          ..PrinterOptions::default()
+        })
+        .unwrap();
+      minify_test(
+        &format!(".foo {{ color: {} }}", input),
+        &format!(".foo{{color:{}}}", output),
+      );
+    }
+
+    test("contrast-color(#00364a tbd-bg wcag2, #b10, #7b4, #05d)", "#7b4");
+    test("contrast-color(#00c7fc tbd-bg wcag2, #b10, #7b4, #05d)", "#b10");
+    test("contrast-color(#263e0f tbd-bg wcag2, #b10, #7b4, #05d)", "#7b4");
+    test("contrast-color(#371a94 tbd-bg wcag2, #b10, #7b4, #05d)", "#7b4");
+    test("contrast-color(#9aa60e tbd-bg wcag2, #b10, #7b4, #05d)", "#b10");
+    test("contrast-color(#c3d117 tbd-bg wcag2, #b10, #7b4, #05d)", "#b10");
+    test("contrast-color(#ffb43f tbd-bg wcag2, #b10, #7b4, #05d)", "#b10");
+    test("contrast-color(#ffe4a8 tbd-bg wcag2, #b10, #7b4, #05d)", "#b10");
+
+    test("contrast-color(#000 tbd-bg wcag2, #111, #eee)", "#eee");
+    test("contrast-color(#666 tbd-bg wcag2, #111, #eee)", "#eee");
+    test("contrast-color(#ccc tbd-bg wcag2, #111, #eee)", "#111");
+    test("contrast-color(#fff tbd-bg wcag2, #111, #eee)", "#111");
+
+    test("contrast-color(#000 tbd-fg wcag2, #111, #eee)", "#eee");
+    test("contrast-color(#666 tbd-fg wcag2, #111, #eee)", "#eee");
+    test("contrast-color(#ccc tbd-fg wcag2, #111, #eee)", "#111");
+    test("contrast-color(#fff tbd-fg wcag2, #111, #eee)", "#111");
+
+    test("contrast-color(#000 tbd-bg wcag2, #111, #eee, #ddd)", "#eee");
+    test("contrast-color(#666 tbd-bg wcag2, #111, #eee, #ddd)", "#eee");
+    test("contrast-color(#ccc tbd-bg wcag2, #111, #eee, #ddd)", "#111");
+    test("contrast-color(#fff tbd-bg wcag2, #111, #eee, #ddd)", "#111");
+
+    test("contrast-color(#000 tbd-bg wcag2, #111, #eee, #ddd, #ccc)", "#eee");
+    test("contrast-color(#666 tbd-bg wcag2, #111, #eee, #ddd, #ccc)", "#eee");
+    test("contrast-color(#ccc tbd-bg wcag2, #111, #eee, #ddd, #ccc)", "#111");
+    test("contrast-color(#fff tbd-bg wcag2, #111, #eee, #ddd, #ccc)", "#111");
+
+    test("contrast-color(lab(from green l a b))", "#fff");
+    test("contrast-color(lab(from green l a b) tbd-bg wcag2, #111, #eee)", "#eee");
+
+    // https://drafts.csswg.org/css-color-6/#example-62c2d8fa
+    test(
+      "contrast-color(wheat tbd-bg wcag2, tan, sienna, #b22222, #d2691e)",
+      "#b22222",
+    );
+
+    // https://drafts.csswg.org/css-color-6/#example-3a7863eb
+    test(
+      "contrast-color(hsl(200 50% 80%) tbd-fg wcag2, hsl(200 83% 23%), purple, hsl(300 100% 25%))",
+      "purple",
+    );
+
+    // Leaves variables as-is
+    fn test_leaves_as_is(input: &str) {
+      minify_test(
+        &format!(".foo {{ color: {} }}", input),
+        &format!(".foo{{color:{}}}", input),
+      );
+    }
+
+    test_leaves_as_is("contrast-color(var(--test))");
+    test_leaves_as_is("contrast-color(currentColor)");
+    test_leaves_as_is("contrast-color(#000 tbd-bg wcag2,var(--test))");
+    test_leaves_as_is("contrast-color(#000 tbd-bg wcag2,currentColor)");
+  }
+
+  #[test]
   fn test_relative_color() {
     fn test(input: &str, output: &str) {
       let output = CssColor::parse_string(output)
