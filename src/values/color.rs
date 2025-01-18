@@ -231,7 +231,7 @@ pub enum FloatColor {
 
 bitflags! {
   /// A color type that is used as a fallback when compiling colors for older browsers.
-  #[derive(PartialEq, Eq, Clone, Copy)]
+  #[derive(Debug, PartialEq, Eq, Clone, Copy)]
   pub struct ColorFallbackKind: u8 {
     /// An RGB color fallback.
     const RGB    = 0b01;
@@ -303,13 +303,16 @@ impl ColorFallbackKind {
     *self | ColorFallbackKind::from_bits_truncate(self.bits() - 1)
   }
 
-  pub(crate) fn supports_condition<'i>(&self) -> SupportsCondition<'i> {
-    let s = match *self {
+  pub(crate) const fn supports_condition_value(&self) -> &'static str {
+    match *self {
       ColorFallbackKind::P3 => "color(display-p3 0 0 0)",
       ColorFallbackKind::LAB => "lab(0% 0 0)",
       _ => unreachable!(),
-    };
+    }
+  }
 
+  pub(crate) fn supports_condition<'i>(&self) -> SupportsCondition<'i> {
+    let s = self.supports_condition_value();
     SupportsCondition::Declaration {
       property_id: PropertyId::Color,
       value: s.into(),

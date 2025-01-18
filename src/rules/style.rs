@@ -173,8 +173,8 @@ impl<'i, T> StyleRule<'i, T> {
 
   pub(crate) fn update_prefix(&mut self, context: &mut MinifyContext<'_, 'i>) {
     self.vendor_prefix = get_prefix(&self.selectors);
-    if self.vendor_prefix.contains(VendorPrefix::None) && context.targets.should_compile_selectors() {
-      self.vendor_prefix = downlevel_selectors(self.selectors.0.as_mut_slice(), *context.targets);
+    if self.vendor_prefix.contains(VendorPrefix::None) && context.targets.current.should_compile_selectors() {
+      self.vendor_prefix = downlevel_selectors(self.selectors.0.as_mut_slice(), context.targets.current);
     }
   }
 }

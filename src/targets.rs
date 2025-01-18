@@ -2,6 +2,8 @@
 
 #![allow(missing_docs)]
 
+use std::borrow::Borrow;
+
 use crate::vendor_prefix::VendorPrefix;
 use bitflags::bitflags;
 #[cfg(any(feature = "serde", feature = "nodejs"))]
@@ -136,7 +138,7 @@ fn parse_version(version: &str) -> Option<u32> {
 
 bitflags! {
   /// Features to explicitly enable or disable.
-  #[derive(Debug, Default, Clone, Copy)]
+  #[derive(Debug, Default, Clone, Copy, Hash, Eq, PartialEq)]
   pub struct Features: u32 {
     const Nesting = 1 << 0;
     const NotSelectorList = 1 << 1;
@@ -164,6 +166,18 @@ bitflags! {
     const Colors = Self::ColorFunction.bits() | Self::OklabColors.bits() | Self::LabColors.bits() | Self::P3Colors.bits() | Self::HexAlphaColors.bits() | Self::SpaceSeparatedColorNotation.bits() | Self::LightDark.bits();
   }
 }
+
+pub(crate) trait FeaturesIterator: Sized + Iterator {
+  fn try_union_all<T>(&mut self) -> Option<Features>
+  where
+    Self: Iterator<Item = Option<T>>,
+    T: Borrow<Features>,
+  {
+    self.try_fold(Features::empty(), |a, b| b.map(|b| a | *b.borrow()))
+  }
+}
+
+impl<I> FeaturesIterator for I where I: Iterator {}
 
 /// Target browsers and features to compile.
 #[derive(Debug, Clone, Copy, Default)]
@@ -223,6 +237,67 @@ impl Targets {
       prefix
     }
   }
+}
+
+#[derive(Debug)]
+pub(crate) struct TargetsWithSupportsScope {
+  stack: Vec<Features>,
+  pub(crate) current: Targets,
+}
+
+impl TargetsWithSupportsScope {
+  pub fn new(targets: Targets) -> Self {
+    Self {
+      stack: Vec::new(),
+      current: targets,
+    }
+  }
+
+  /// Returns true if inserted
+  pub fn enter_supports(&mut self, features: Features) -> bool {
+    if features.is_empty() || self.current.exclude.contains(features) {
+      // Already excluding all features
+      return false;
+    }
+
+    let newly_excluded = features - self.current.exclude;
+    self.stack.push(newly_excluded);
+    self.current.exclude.insert(newly_excluded);
+    true
+  }
+
+  /// Should be only called if inserted
+  pub fn exit_supports(&mut self) {
+    if let Some(last) = self.stack.pop() {
+      self.current.exclude.remove(last);
+    }
+  }
+}
+
+#[test]
+fn supports_scope_correctly() {
+  let mut targets = TargetsWithSupportsScope::new(Targets::default());
+  assert!(!targets.current.exclude.contains(Features::OklabColors));
+  assert!(!targets.current.exclude.contains(Features::LabColors));
+  assert!(!targets.current.exclude.contains(Features::P3Colors));
+
+  targets.enter_supports(Features::OklabColors | Features::LabColors);
+  assert!(targets.current.exclude.contains(Features::OklabColors));
+  assert!(targets.current.exclude.contains(Features::LabColors));
+
+  targets.enter_supports(Features::P3Colors | Features::LabColors);
+  assert!(targets.current.exclude.contains(Features::OklabColors));
+  assert!(targets.current.exclude.contains(Features::LabColors));
+  assert!(targets.current.exclude.contains(Features::P3Colors));
+
+  targets.exit_supports();
+  assert!(targets.current.exclude.contains(Features::OklabColors));
+  assert!(targets.current.exclude.contains(Features::LabColors));
+  assert!(!targets.current.exclude.contains(Features::P3Colors));
+
+  targets.exit_supports();
+  assert!(!targets.current.exclude.contains(Features::OklabColors));
+  assert!(!targets.current.exclude.contains(Features::LabColors));
 }
 
 macro_rules! should_compile {

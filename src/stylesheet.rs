@@ -11,7 +11,7 @@ use crate::error::{Error, ErrorLocation, MinifyErrorKind, ParserError, PrinterEr
 use crate::parser::{DefaultAtRule, DefaultAtRuleParser, TopLevelRuleParser};
 use crate::printer::Printer;
 use crate::rules::{CssRule, CssRuleList, MinifyContext};
-use crate::targets::{should_compile, Targets};
+use crate::targets::{should_compile, Targets, TargetsWithSupportsScope};
 use crate::traits::{AtRuleParser, ToCss};
 use crate::values::string::CowArcStr;
 #[cfg(feature = "visitor")]
@@ -242,7 +242,7 @@ where
     };
 
     let mut ctx = MinifyContext {
-      targets: &options.targets,
+      targets: TargetsWithSupportsScope::new(options.targets),
       handler: &mut handler,
       important_handler: &mut important_handler,
       handler_context: context,

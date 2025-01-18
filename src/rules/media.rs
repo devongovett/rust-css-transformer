@@ -39,7 +39,7 @@ impl<'i, T: Clone> MediaRule<'i, T> {
       self.query.transform_custom_media(self.loc, custom_media)?;
     }
 
-    self.query.transform_resolution(*context.targets);
+    self.query.transform_resolution(context.targets.current);
     Ok(self.rules.0.is_empty() || self.query.never_matches())
   }
 }

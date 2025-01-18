@@ -261,7 +261,7 @@ impl<'i> FontPaletteValuesRule<'i> {
           // Generate color fallbacks.
           let mut fallbacks = ColorFallbackKind::empty();
           for o in override_colors {
-            fallbacks |= o.color.get_necessary_fallbacks(*context.targets);
+            fallbacks |= o.color.get_necessary_fallbacks(context.targets.current);
           }
 
           if fallbacks.contains(ColorFallbackKind::RGB) {

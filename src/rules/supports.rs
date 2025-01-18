@@ -8,8 +8,9 @@ use crate::error::{MinifyError, ParserError, PrinterError};
 use crate::parser::DefaultAtRule;
 use crate::printer::Printer;
 use crate::properties::PropertyId;
-use crate::targets::Targets;
+use crate::targets::{Features, FeaturesIterator, Targets};
 use crate::traits::{Parse, ToCss};
+use crate::values::color::ColorFallbackKind;
 use crate::values::string::CowArcStr;
 use crate::vendor_prefix::VendorPrefix;
 #[cfg(feature = "visitor")]
@@ -42,8 +43,19 @@ impl<'i, T: Clone> SupportsRule<'i, T> {
     context: &mut MinifyContext<'_, 'i>,
     parent_is_unused: bool,
   ) -> Result<(), MinifyError> {
-    self.condition.set_prefixes_for_targets(&context.targets);
-    self.rules.minify(context, parent_is_unused)
+    let inserted = context.targets.enter_supports(self.condition.get_supported_features());
+    if inserted {
+      context.handler_context.targets = context.targets.current;
+    }
+
+    self.condition.set_prefixes_for_targets(&context.targets.current);
+    let result = self.rules.minify(context, parent_is_unused);
+
+    if inserted {
+      context.targets.exit_supports();
+      context.handler_context.targets = context.targets.current;
+    }
+    result
   }
 }
 
@@ -148,6 +160,31 @@ impl<'i> SupportsCondition<'i> {
       }
       _ => {}
     }
+  }
+
+  fn get_supported_features(&self) -> Features {
+    const COLOR_P3_SUPPORTS_CONDITION: &str = ColorFallbackKind::P3.supports_condition_value();
+    const COLOR_LAB_SUPPORTS_CONDITION: &str = ColorFallbackKind::LAB.supports_condition_value();
+    fn get_supported_features_internal(value: &SupportsCondition) -> Option<Features> {
+      match value {
+        SupportsCondition::And(list) => list.iter().map(|c| get_supported_features_internal(c)).try_union_all(),
+        SupportsCondition::Declaration { property_id, value } => match property_id {
+          PropertyId::Color => Some(match value.as_ref() {
+            COLOR_P3_SUPPORTS_CONDITION => Features::P3Colors | Features::ColorFunction,
+            COLOR_LAB_SUPPORTS_CONDITION => Features::LabColors,
+            _ => Features::empty(),
+          }),
+          _ => Some(Features::empty()),
+        },
+        // bail out if "not" or "or" exists for now
+        SupportsCondition::Not(_) | SupportsCondition::Or(_) => None,
+        SupportsCondition::Selector(_) | SupportsCondition::Unknown(_) => {
+          Some(Features::empty())
+        }
+      }
+    }
+
+    get_supported_features_internal(self).unwrap_or(Features::empty())
   }
 }
 
