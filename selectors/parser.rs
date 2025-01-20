@@ -758,6 +758,47 @@ impl<'i, Impl: SelectorImpl<'i>> Selector<'i, Impl> {
     self.1.insert(index, component);
   }
 
+  /// Inserts a [`Component`] to an arbitrary index in the internal components Vec.
+  ///
+  /// An order in which components are stored is right-to-left (see [`Selector::iter_raw_match_order()`])
+  #[inline]
+  pub fn insert_raw(&mut self, index: usize, component: Component<'i, Impl>) {
+    self.1.insert(index, component)
+  }
+
+  /// Inserts multiple [`Component`]s to an arbitrary index in the internal components Vec.
+  ///
+  /// An order in which components are stored is right-to-left (see [`Selector::iter_raw_match_order()`])
+  #[inline]
+  pub fn insert_raw_multiple(&mut self, index: usize, mut components: Vec<Component<'i, Impl>>) {
+    if index > self.1.len() {
+      return;
+    }
+
+    let old_len = self.1.len();
+    let mut old = std::mem::replace(&mut self.1, Vec::with_capacity(old_len + components.len()));
+
+    // Fast track: insert at index 0 is the same as Vec::append
+    if index == 0 {
+      self.1.append(&mut components);
+      self.1.append(&mut old);
+      return;
+    }
+
+    // Manually move the first `index` elements
+    let mut old_iter = old.into_iter();
+    for _ in 0..index {
+      let Some(old_component) = old_iter.next() else {
+        unreachable!("index is never greater than selector len")
+      };
+
+      self.1.push(old_component)
+    }
+
+    self.1.append(&mut components);
+    self.1.extend(old_iter);
+  }
+
   #[inline]
   pub fn parts(&self) -> Option<&[Impl::Identifier]> {
     if !self.is_part() {
