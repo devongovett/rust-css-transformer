@@ -661,55 +661,96 @@ impl<'i> ToCss for Animation<'i> {
   where
     W: std::fmt::Write,
   {
-    match &self.name {
-      AnimationName::None => {}
-      AnimationName::Ident(CustomIdent(name)) | AnimationName::String(CSSString(name)) => {
-        if !self.duration.is_zero() || !self.delay.is_zero() {
-          self.duration.to_css(dest)?;
-          dest.write_char(' ')?;
-        }
+    let name = match &self.name {
+      AnimationName::None => None,
+      AnimationName::Ident(CustomIdent(name)) | AnimationName::String(CSSString(name)) => Some(name),
+    };
 
-        if !self.timing_function.is_ease() || EasingFunction::is_ident(&name) {
-          self.timing_function.to_css(dest)?;
-          dest.write_char(' ')?;
-        }
+    let mut has_item = false;
 
-        if !self.delay.is_zero() {
-          self.delay.to_css(dest)?;
-          dest.write_char(' ')?;
-        }
+    if !self.duration.is_zero() || !self.delay.is_zero() {
+      self.duration.to_css(dest)?;
+      has_item = true;
+    }
 
-        if self.iteration_count != AnimationIterationCount::default() || name.as_ref() == "infinite" {
-          self.iteration_count.to_css(dest)?;
-          dest.write_char(' ')?;
-        }
-
-        if self.direction != AnimationDirection::default() || AnimationDirection::parse_string(&name).is_ok() {
-          self.direction.to_css(dest)?;
-          dest.write_char(' ')?;
-        }
-
-        if self.fill_mode != AnimationFillMode::default()
-          || (!name.eq_ignore_ascii_case("none") && AnimationFillMode::parse_string(&name).is_ok())
-        {
-          self.fill_mode.to_css(dest)?;
-          dest.write_char(' ')?;
-        }
-
-        if self.play_state != AnimationPlayState::default() || AnimationPlayState::parse_string(&name).is_ok() {
-          self.play_state.to_css(dest)?;
-          dest.write_char(' ')?;
-        }
+    if !self.timing_function.is_ease() || name.is_some_and(|name| EasingFunction::is_ident(name)) {
+      if has_item {
+        dest.write_char(' ')?;
       }
+      self.timing_function.to_css(dest)?;
+      has_item = true;
+    }
+
+    if !self.delay.is_zero() {
+      if has_item {
+        dest.write_char(' ')?;
+      }
+      self.delay.to_css(dest)?;
+      has_item = true;
+    }
+
+    if self.iteration_count != AnimationIterationCount::default()
+      || name.is_some_and(|name| name.as_ref() == "infinite")
+    {
+      if has_item {
+        dest.write_char(' ')?;
+      }
+      self.iteration_count.to_css(dest)?;
+      has_item = true;
+    }
+
+    if self.direction != AnimationDirection::default()
+      || name.is_some_and(|name| AnimationDirection::parse_string(name).is_ok())
+    {
+      if has_item {
+        dest.write_char(' ')?;
+      }
+      self.direction.to_css(dest)?;
+      has_item = true;
+    }
+
+    if self.fill_mode != AnimationFillMode::default()
+      || name
+        .is_some_and(|name| !name.eq_ignore_ascii_case("none") && AnimationFillMode::parse_string(name).is_ok())
+    {
+      if has_item {
+        dest.write_char(' ')?;
+      }
+      self.fill_mode.to_css(dest)?;
+      has_item = true;
+    }
+
+    if self.play_state != AnimationPlayState::default()
+      || name.is_some_and(|name| AnimationPlayState::parse_string(name).is_ok())
+    {
+      if has_item {
+        dest.write_char(' ')?;
+      }
+      self.play_state.to_css(dest)?;
+      has_item = true;
     }
 
     // Eventually we could output a string here to avoid duplicating some properties above.
     // Chrome does not yet support strings, however.
-    self.name.to_css(dest)?;
+    if self.name != AnimationName::None {
+      if has_item {
+        dest.write_char(' ')?;
+      }
+      self.name.to_css(dest)?;
+      has_item = true;
 
-    if self.name != AnimationName::None && self.timeline != AnimationTimeline::default() {
-      dest.write_char(' ')?;
-      self.timeline.to_css(dest)?;
+      if self.timeline != AnimationTimeline::default() {
+        dest.write_char(' ')?;
+        self.timeline.to_css(dest)?;
+      }
+    }
+
+    if !has_item {
+      if dest.minify {
+        dest.write_char('1')?;
+      } else {
+        dest.write_str("none")?;
+      }
     }
 
     Ok(())

@@ -11632,13 +11632,25 @@ mod tests {
       ".foo { animation-fill-mode: Backwards,forwards }",
       ".foo{animation-fill-mode:backwards,forwards}",
     );
-    minify_test(".foo { animation: none }", ".foo{animation:none}");
+    minify_test(".foo { animation: none }", ".foo{animation:1}");
     minify_test(".foo { animation: \"none\" }", ".foo{animation:\"none\"}");
     minify_test(".foo { animation: \"None\" }", ".foo{animation:\"None\"}");
-    minify_test(".foo { animation: \"none\", none }", ".foo{animation:\"none\",none}");
-    minify_test(".foo { animation: none, none }", ".foo{animation:none,none}");
+    minify_test(".foo { animation: \"none\", none }", ".foo{animation:\"none\",1}");
+    minify_test(".foo { animation: none, none }", ".foo{animation:1,1}");
     minify_test(".foo { animation: \"none\" none }", ".foo{animation:\"none\"}");
     minify_test(".foo { animation: none none }", ".foo{animation:none}");
+
+    minify_test(".foo { animation: 0s }", ".foo{animation:1}");
+    minify_test(".foo { animation: 1s }", ".foo{animation:1s}");
+    minify_test(".foo { animation: ease }", ".foo{animation:1}");
+    minify_test(".foo { animation: linear }", ".foo{animation:linear}");
+    minify_test(".foo { animation: 1 }", ".foo{animation:1}");
+    minify_test(".foo { animation: infinite }", ".foo{animation:infinite}");
+    minify_test(".foo { animation: normal }", ".foo{animation:1}");
+    minify_test(".foo { animation: reverse }", ".foo{animation:reverse}");
+    minify_test(".foo { animation: forwards }", ".foo{animation:forwards}");
+    minify_test(".foo { animation: running }", ".foo{animation:1}");
+    minify_test(".foo { animation: paused }", ".foo{animation:paused}");
 
     // Test animation-name + animation-fill-mode
     minify_test(
