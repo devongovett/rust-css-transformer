@@ -58,6 +58,8 @@ impl<'i, T: Clone> StyleRule<'i, T> {
     context: &mut MinifyContext<'_, 'i>,
     parent_is_unused: bool,
   ) -> Result<bool, MinifyError> {
+    self.selectors.minify();
+
     let mut unused = false;
     if !context.unused_symbols.is_empty() {
       if is_unused(&mut self.selectors.0.iter(), &context.unused_symbols, parent_is_unused) {

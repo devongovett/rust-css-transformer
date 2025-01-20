@@ -17,6 +17,7 @@ use cssparser::{Parser as CssParser, ToCss, Token};
 use precomputed_hash::PrecomputedHash;
 use smallvec::{smallvec, SmallVec};
 use std::borrow::Borrow;
+use std::collections::HashSet;
 use std::fmt::{self, Debug};
 use std::iter::Rev;
 use std::slice;
@@ -541,6 +542,28 @@ impl<'i, Impl: SelectorImpl<'i>> SelectorList<'i, Impl> {
         }
       }
     }
+  }
+
+  pub fn minify(&mut self) {
+    self
+      .0
+      .iter()
+      .enumerate()
+      .fold(
+        (HashSet::with_capacity(self.0.len()), Vec::with_capacity(self.0.len())),
+        |(mut seen, mut to_remove), (i, selector)| {
+          if !seen.insert(selector.to_css_string()) {
+            to_remove.push(i);
+          }
+          (seen, to_remove)
+        },
+      )
+      .1
+      .into_iter()
+      .rev()
+      .for_each(|i| {
+        self.0.remove(i);
+      });
   }
 
   /// Creates a new SelectorList.
