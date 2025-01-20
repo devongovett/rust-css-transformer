@@ -365,7 +365,7 @@ test('resolve return non-string', async () => {
   }
 
   if (!error) throw new Error(`\`testResolveReturnNonString()\` failed. Expected \`bundleAsync()\` to throw, but it did not.`);
-  assert.equal(error.message, 'expect String, got: Number');
+  assert.equal(error.message, 'expect string or boolean, got: Number');
   assert.equal(error.fileName, 'tests/testdata/foo.css');
   assert.equal(error.loc, {
     line: 1,
@@ -412,6 +412,31 @@ test('should support throwing in visitors', async () => {
   }
 
   assert.equal(error.message, 'Some error');
+});
+
+test('external import', async () => {
+  const { code: buffer } = await bundleAsync(/** @type {import('../index').BundleAsyncOptions} */ ({
+    filename: 'tests/testdata/has_external.css',
+    resolver: {
+      resolve(specifier, originatingFile) {
+        if (specifier === './does_not_exist.css' || specifier.startsWith('https:')) {
+          return true;
+        }
+        return path.resolve(path.dirname(originatingFile), specifier);
+      }
+    }
+  }));
+  const code = buffer.toString('utf-8').trim();
+
+  const expected = `
+@import "https://fonts.googleapis.com/css2?family=Roboto&display=swap";
+@import "./does_not_exist.css";
+
+.b {
+  height: calc(100vh - 64px);
+}
+     `.trim();
+  if (code !== expected) throw new Error(`\`testResolver()\` failed. Expected:\n${expected}\n\nGot:\n${code}`);
 });
 
 test.run();
