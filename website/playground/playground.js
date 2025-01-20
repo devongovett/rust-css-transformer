@@ -74,6 +74,7 @@ function loadPlaygroundState() {
   }
 }`,
       version: version.value,
+      parser: parser.value,
       visitor: `{
   Color(color) {
     if (color.type === 'rgb') {
@@ -149,6 +150,7 @@ function savePlaygroundState() {
     visitorEnabled: visitorEnabled.checked,
     visitor: visitorEditor.state.doc.toString(),
     unusedSymbols: unusedSymbols.value.split('\n').map(v => v.trim()).filter(Boolean),
+    parser: parser.value,
     version: version.value,
   };
 
@@ -195,14 +197,18 @@ function updateFeatures(elements, include) {
 }
 
 function update() {
-  const { transform } = wasm;
+  const { transform, transformStyleAttribute } = wasm;
+  let transformMethod = transform;
+  if (parser.value === 'style-attribute') {
+    transformMethod = transformStyleAttribute;
+  }
 
   const targets = getTargets();
   let data = new FormData(sidebar);
   let include = getFeatures(data.getAll('include'));
   let exclude = getFeatures(data.getAll('exclude'));
   try {
-    let res = transform({
+    let res = transformMethod({
       filename: 'test.css',
       code: enc.encode(editor.state.doc.toString()),
       minify: minify.checked,
