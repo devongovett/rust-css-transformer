@@ -78,7 +78,7 @@ impl<'i> Parse<'i> for Composes<'i> {
 fn parse_one_ident<'i, 't>(
   input: &mut Parser<'i, 't>,
 ) -> Result<CustomIdent<'i>, ParseError<'i, ParserError<'i>>> {
-  let name = CustomIdent::parse(input)?;
+  let name = CustomIdent(input.expect_ident()?.into());
   if name.0.eq_ignore_ascii_case("from") {
     return Err(input.new_error_for_next_token());
   }

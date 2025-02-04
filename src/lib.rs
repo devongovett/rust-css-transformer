@@ -24066,6 +24066,35 @@ mod tests {
 
     css_modules_test(
       r#"
+      .a {
+        composes: default;
+        color: red;
+      }
+
+      .default {
+        color: blue;
+      }
+      "#,
+      indoc! {r#"
+        .EgL3uq_a {
+          color: red;
+        }
+
+        .EgL3uq_default {
+          color: #00f;
+        }
+      "#},
+      map! {
+        "a" => "EgL3uq_a" "EgL3uq_default",
+        "default" => "EgL3uq_default"
+      },
+      HashMap::new(),
+      Default::default(),
+      false
+    );
+
+    css_modules_test(
+      r#"
       .foo {
         color: red;
       }
