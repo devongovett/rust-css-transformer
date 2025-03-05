@@ -51,6 +51,7 @@ impl Browsers {
     Self::from_distribs(resolve(query, &Opts::default())?)
   }
 
+  #[cfg(not(target_arch = "wasm32"))]
   /// Finds browserslist configuration, selects queries by environment and loads the resulting queries into LightningCSS targets.
   ///
   /// Configuration resolution is modeled after the original `browserslist` nodeJS package.
