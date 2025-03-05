@@ -7111,6 +7111,16 @@ mod tests {
       "@scope(._8Z4fiW_a) to (._8Z4fiW_b){._8Z4fiW_foo{color:red}}",
       pure_css_module_options.clone(),
     );
+    minify_test_with_options(
+      "/* cssmodules-pure-no-check */ :global(.foo) { color: red }",
+      ".foo{color:red}",
+      pure_css_module_options.clone(),
+    );
+    minify_test_with_options(
+      "/*! some license */ /* cssmodules-pure-no-check */ :global(.foo) { color: red }",
+      "/*! some license */\n.foo{color:red}",
+      pure_css_module_options.clone(),
+    );
 
     error_test(
       "input.defaultCheckbox::before h1 {width: 20px}",

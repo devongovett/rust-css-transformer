@@ -172,6 +172,11 @@ where
         cssparser::Token::Comment(comment) if comment.starts_with('!') => {
           license_comments.push((*comment).into());
         }
+        cssparser::Token::Comment(comment) if comment.contains("cssmodules-pure-no-check") => {
+          if let Some(css_modules) = &mut options.css_modules {
+            css_modules.pure = false;
+          }
+        }
         _ => break,
       }
       state = parser.state();
