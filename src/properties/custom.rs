@@ -1474,10 +1474,15 @@ impl<'i> Function<'i> {
   where
     W: std::fmt::Write,
   {
-    self.name.to_css(dest)?;
-    dest.write_char('(')?;
-    self.arguments.to_css(dest, is_custom_property)?;
-    dest.write_char(')')
+    match self.name.as_ref() {
+      "global" if !is_custom_property => self.arguments.to_css(dest, is_custom_property),
+      _ => {
+        self.name.to_css(dest)?;
+        dest.write_char('(')?;
+        self.arguments.to_css(dest, is_custom_property)?;
+        dest.write_char(')')
+      }
+    }
   }
 
   fn get_fallback(&self, kind: ColorFallbackKind) -> Self {

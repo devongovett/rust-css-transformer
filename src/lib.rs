@@ -24303,6 +24303,7 @@ mod tests {
       r#"
       :global(.foo) {
         color: red;
+        animation: global(baz) 2s;
       }
 
       :local(.bar) {
@@ -24316,6 +24317,7 @@ mod tests {
       indoc! {r#"
       .foo {
         color: red;
+        animation: baz 2s;
       }
 
       .EgL3uq_bar {
