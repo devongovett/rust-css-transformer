@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 [dependencies]
 lightningcss = { path = "../", features = ["browserslist"] }
 parcel_sourcemap = { version = "2.1.1", features = ["json"] }
-browserslist-rs = { version = "0.16.0" }
+browserslist-rs = { version = "0.17.0" }
 
 [build-dependencies]
 cbindgen = "0.24.3"
